@@ -95,9 +95,7 @@ func (bc *Blockcypher) Stop() {
 
 func (bc *Blockcypher) do(addresses []string) ([]blockcypherResponse, error) {
 	addrs := strings.Join(addresses, ";")
-	url := fmt.Sprintf(blockcypherURL, addrs)
-	fmt.Println(url)
-	resp, err := http.Get(url)
+	resp, err := http.Get(fmt.Sprintf(blockcypherURL, addrs))
 	if err != nil {
 		return nil, err
 	}
