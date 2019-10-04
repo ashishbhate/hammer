@@ -19,4 +19,4 @@ See the repo's issues for upcoming support for APIs. The more workers there are,
 
 ## Issues
 
-The repo issues are a fair representation of known issues and planned improvements. The Gitlab repo is the canonical repository. The Github repo is a mirror.
+The repo issues are a fair representation of known issues and planned improvements. The [GitLab](https://gitlab.com/ashishbhate/hammer) repo is the canonical repository. The [GitHub](https://github.com/ashishbhate/hammer) repo is a mirror.
