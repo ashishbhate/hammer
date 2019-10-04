@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/ashishbhate/hammer"
+	"gitlab.com/ashishbhate/hammer"
 )
 
 func main() {
