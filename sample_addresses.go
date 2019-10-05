@@ -2,7 +2,7 @@ package hammer
 
 // SampleAddresses25 are 25 Bitcoin addresses
 var SampleAddresses25 = []string{
-	"1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF",
+	"1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF", // has a huge balance
 	"1LNar9oHp2HLMyxJATa6DVNBQPtNDhNdDj",
 	"19fR4aygwbXj6so57CsxYKZguqsmf8v8pa",
 	"1FTqHqaMghxXrUdvYFBPXPhZWRQGMounkL",
@@ -26,12 +26,12 @@ var SampleAddresses25 = []string{
 	"1PeN8ccB3Mi9d18aicgBQZGSj1bpzCyBYX",
 	"18bq9DvvBKu69Tpgefx6PFChxMCPoqkPUN",
 	"1HR2T3sULZ2P2ZuPwxthtmx2JTNKPPRFg3",
-	"3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
+	"3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r", // has a huge balance
 }
 
 // SampleAddresses are some Bitcoin addresses
 var SampleAddresses = []string{
-	"1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF",
+	"1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF", // has a huge balance
 	"1LNar9oHp2HLMyxJATa6DVNBQPtNDhNdDj",
 	"19fR4aygwbXj6so57CsxYKZguqsmf8v8pa",
 	"1FTqHqaMghxXrUdvYFBPXPhZWRQGMounkL",
@@ -55,7 +55,7 @@ var SampleAddresses = []string{
 	"1PeN8ccB3Mi9d18aicgBQZGSj1bpzCyBYX",
 	"18bq9DvvBKu69Tpgefx6PFChxMCPoqkPUN",
 	"1HR2T3sULZ2P2ZuPwxthtmx2JTNKPPRFg3",
-	"3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
+	"3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r", // has a huge balance
 	"16RHmUTqwpqARFRiakv74Y12ky9ZJdBbN5",
 	"19NPVpnt1Wm6J5BefxrXvfSWPM8gFhkY1m",
 	"1EVey8EwjkdjgJnWwHkj6NPgm8kvYSEPBt",
@@ -532,24 +532,3 @@ var SampleAddresses = []string{
 	"17sa4kkhN5mVDrXLaDXkgiTzhz5h23D8CT",
 	"1LnuoKNEPRv7hX7j1JkcQCymzNEEx7XMeE",
 }
-
-// blockr api at new endpoint since take over by coinbase. Needs an API key
-
-// New https://chainz.cryptoid.info
-// https://chainz.cryptoid.info/api.dws
-// Please limit your calls to the Query API to 1 every 10 seconds.
-// One address at a time
-
-// https://www.blockonomics.co/views/api.html
-
-// New     blockexplorer.com
-//   /api/addr/[:addr]/balance
-//   /api/addr/[:addr]/totalReceived
-//   /api/addr/[:addr]/totalSent
-//   /api/addr/[:addr]/unconfirmedBalance
-
-// New https://www.blockchain.com/api/q
-
-// New https://chain.so/api one address at a time; 5 reqs/sec; doesnt like continuous requests  # NOQA
-
-// New https://btc.com/api-doc#Address
