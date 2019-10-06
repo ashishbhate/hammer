@@ -3,26 +3,38 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"gitlab.com/ashishbhate/hammer"
 )
 
 func main() {
-	input := make(chan string)
+	// Init
 	output := make(chan hammer.Result)
-	stop := make(chan struct{})
 
-	workers := hammer.WorkersAll(input, output, stop)
+	h := hammer.New(hammer.WorkersAll())
 
-	for _, worker := range workers {
-		go worker.Start()
+	// submit work
+	// Although we know the number of addresses submitted
+	// lets pretend we don't and use a wait group
+	var wg sync.WaitGroup
+	for _, addr := range hammer.SampleAddresses {
+		wg.Add(1)
+		go func(addr string) {
+			output <- h.GetBalance(addr)
+			wg.Done()
+		}(addr)
 	}
 
-	go hammer.SubmitAddresses(hammer.SampleAddresses, input)
+	// close the output at the right time
+	go func() {
+		wg.Wait()
+		close(output)
+	}()
 
-	for range hammer.SampleAddresses {
-		res := <-output
-		fmt.Printf("%+v\n", res)
+	for res := range output {
+		if res.BalanceTotal != 0 {
+			fmt.Printf("%+v\n", res)
+		}
 	}
-	// signal exit by closing exit channel
 }

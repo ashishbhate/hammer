@@ -28,46 +28,35 @@ type Blockonomics struct {
 }
 
 // NewBlockonomics returns an initialized Blockonomics worker
-func NewBlockonomics(input chan string, output chan Result, stop chan struct{}) *Blockonomics {
+func NewBlockonomics() *Blockonomics {
 	return &Blockonomics{
 		W{
-			name:   "blockonomics",
-			input:  input,
-			output: output,
-			stop:   stop,
+			name:  "blockonomics",
+			input: make(chan Request),
 		},
 	}
 }
 
 // Start the blockonomics worker
 func (bl *Blockonomics) Start() {
-	addresses := make([]string, 0, blockonomicsBatchLimit)
+	requests := make([]Request, 0, blockonomicsBatchLimit)
 	for {
 		// we wait upto 5 seconds to gather as many addresses (upto query limit)
 		ticker := time.NewTicker(5 * time.Second)
 		select {
-		case address := <-bl.input:
-			addresses = append(addresses, address)
-			if len(addresses) == blockonomicsBatchLimit {
-				bl.process(addresses)
-				addresses = []string{}
+		case request := <-bl.input:
+			requests = append(requests, request)
+			if len(requests) == blockonomicsBatchLimit {
+				bl.process(requests)
+				requests = []Request{}
 			}
 		case <-ticker.C:
-			if len(addresses) > 0 {
-				bl.process(addresses)
-				addresses = []string{}
+			if len(requests) > 0 {
+				bl.process(requests)
+				requests = []Request{}
 			}
-		case <-bl.stop:
-			ticker.Stop()
-			bl.Stop()
-			return
 		}
 	}
-}
-
-// Stop the Blockononics worker
-func (bl *Blockonomics) Stop() {
-	return
 }
 
 func (bl *Blockonomics) do(addresses []string) (blockonomicsResponse, error) {
@@ -97,11 +86,17 @@ func (bl *Blockonomics) do(addresses []string) (blockonomicsResponse, error) {
 	return result, err
 }
 
-func (bl *Blockonomics) process(addresses []string) {
+func (bl *Blockonomics) process(requests []Request) {
+	addresses := make([]string, 0, len(requests))
+	addrToChan := make(map[string]chan Result)
+	for _, req := range requests {
+		addresses = append(addresses, req.Address)
+		addrToChan[req.Address] = req.Output
+	}
 	resp, err := bl.do(addresses)
 	if err != nil {
 		fmt.Println(bl.Name()+":", err)
-		go SubmitAddresses(addresses, bl.input) // return addresses to pool for processing
+		go submitRequests(requests, bl.input) // return input channel for processing
 		return
 	}
 	for _, p := range resp.Response {
@@ -112,6 +107,8 @@ func (bl *Blockonomics) process(addresses []string) {
 			BalanceUnconfirmed: p.Unconfirmed,
 			BalanceTotal:       p.Confirmed + p.Unconfirmed,
 		}
-		bl.output <- h
+		go func(p blockonomicsBalances) {
+			addrToChan[p.Addr] <- h
+		}(p)
 	}
 }

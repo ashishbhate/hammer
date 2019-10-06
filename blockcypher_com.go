@@ -28,14 +28,12 @@ type Blockcypher struct {
 }
 
 // NewBlockcypher returns an initialized Blockcypher worker
-func NewBlockcypher(input chan string, output chan Result, stop chan struct{}) *Blockcypher {
+func NewBlockcypher() *Blockcypher {
 	now := time.Now().UTC()
 	bc := Blockcypher{
 		W: W{
-			name:   "blockcypher",
-			input:  input,
-			output: output,
-			stop:   stop,
+			name:  "blockcypher",
+			input: make(chan Request),
 		},
 		currentHourlyCount: 0,
 		lastUTCReset:       now,
@@ -46,7 +44,7 @@ func NewBlockcypher(input chan string, output chan Result, stop chan struct{}) *
 
 // Start the Blockcypher worker
 func (bc *Blockcypher) Start() {
-	addresses := make([]string, 0, blockcypherBatchLimit)
+	requests := make([]Request, 0, blockcypherBatchLimit)
 	for {
 		if bc.currentHourlyCount == blockcypherHourlyLimit {
 			now := time.Now().UTC()
@@ -55,19 +53,19 @@ func (bc *Blockcypher) Start() {
 		// we wait upto 5 seconds to gather as many addresses (upto batch limit)
 		ticker := time.NewTicker(5 * time.Second)
 		select {
-		case address := <-bc.input:
-			addresses = append(addresses, address)
-			if len(addresses) == blockcypherBatchLimit ||
-				len(addresses) == blockcypherHourlyLimit-bc.currentHourlyCount {
-				bc.currentHourlyCount += len(addresses)
-				bc.process(addresses)
-				addresses = []string{}
+		case request := <-bc.input:
+			requests = append(requests, request)
+			if len(requests) == blockcypherBatchLimit ||
+				len(requests) == blockcypherHourlyLimit-bc.currentHourlyCount {
+				bc.currentHourlyCount += len(requests)
+				bc.process(requests)
+				requests = []Request{}
 			}
 		case <-ticker.C:
-			if len(addresses) > 0 {
-				bc.process(addresses)
-				addresses = []string{}
-				bc.currentHourlyCount += len(addresses)
+			if len(requests) > 0 {
+				bc.process(requests)
+				requests = []Request{}
+				bc.currentHourlyCount += len(requests)
 			}
 		case <-bc.hourlyUTCTicker.C:
 			bc.hourlyUTCTicker.Stop()
@@ -75,22 +73,12 @@ func (bc *Blockcypher) Start() {
 			bc.lastUTCReset = now
 			bc.hourlyUTCTicker = nextUTCHourTicker(now)
 			bc.currentHourlyCount = 0
-		case <-bc.stop:
-			ticker.Stop()
-			bc.Stop()
-			return
 		}
 		// Blockcypher claims a rate limit of 3 requests/second
 		// Our request and processing cycle likely takes more than 1 second,
 		// but I still see rate limiting sometimes.
 		time.Sleep(1 * time.Second)
 	}
-}
-
-// Stop the Blockcyper worker
-func (bc *Blockcypher) Stop() {
-	bc.hourlyUTCTicker.Stop()
-	return
 }
 
 func (bc *Blockcypher) do(addresses []string) ([]blockcypherResponse, error) {
@@ -101,7 +89,7 @@ func (bc *Blockcypher) do(addresses []string) ([]blockcypherResponse, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		if resp.StatusCode == 429 { // we've been rate limited for some reason
+		if resp.StatusCode == 429 { // we've been rate limited
 			bc.currentHourlyCount = blockcypherHourlyLimit
 			return nil,
 				fmt.Errorf("rate limited by blockcypher, got status code: %d", resp.StatusCode)
@@ -115,11 +103,17 @@ func (bc *Blockcypher) do(addresses []string) ([]blockcypherResponse, error) {
 	return result, err
 }
 
-func (bc *Blockcypher) process(addresses []string) {
+func (bc *Blockcypher) process(requests []Request) {
+	addresses := make([]string, 0, len(requests))
+	addrToChan := make(map[string]chan Result)
+	for _, req := range requests {
+		addresses = append(addresses, req.Address)
+		addrToChan[req.Address] = req.Output
+	}
 	resp, err := bc.do(addresses)
 	if err != nil {
 		fmt.Println(bc.Name()+":", err)
-		go SubmitAddresses(addresses, bc.input) // return addresses to pool for processing
+		go submitRequests(requests, bc.input) // return input channel for processing
 		return
 	}
 	for _, p := range resp {
@@ -130,7 +124,9 @@ func (bc *Blockcypher) process(addresses []string) {
 			BalanceUnconfirmed: p.Unconfirmed,
 			BalanceTotal:       p.Total,
 		}
-		bc.output <- h
+		go func(p blockcypherResponse) {
+			addrToChan[p.Addr] <- h
+		}(p)
 	}
 }
 
